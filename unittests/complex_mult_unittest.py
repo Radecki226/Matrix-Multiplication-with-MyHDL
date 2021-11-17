@@ -1,6 +1,6 @@
 import unittest
 import sys
-sys.path.append('C:\\Users\\piotrek\\Desktop\\nauka\\7 semestr\\esl\\tutor\\project\\src')
+sys.path.append('C:\\Users\\piotrek\\Desktop\\nauka\\7 semestr\\esl\\tutor\\project\\myhdl_first_project\\src')
 from myhdl import *
 from complex_mult import complex_mult
 import numpy as np
@@ -44,19 +44,19 @@ class ComplexMultTest(unittest.TestCase):
                 inputs = [np.random.randint(INT_MIN_IN,INT_MAX_IN) for j in range(IN_LEN)]
                 #feed them to inputs
                 for j in range(IN_LEN):
-                    x[j].next = Signal(modbv(inputs[j],min=INT_MIN_IN,max=INT_MAX_IN))          
+                    x[j].next = Signal(intbv(inputs[j],min=INT_MIN_IN,max=INT_MAX_IN))          
                 yield delay(10)
                 #expected
                 outputs = self.complex_mult_reference(*(inputs))
-                y_exp = [Signal(modbv(outputs[j],min=INT_MIN_OUT,max=INT_MAX_OUT)) for j in range(OUT_LEN)]
+                y_exp = [Signal(intbv(outputs[j],min=INT_MIN_OUT,max=INT_MAX_OUT)) for j in range(OUT_LEN)]
                 self.assertEqual(y,y_exp)
 
         self.runTests(test)
 
 
     def runTests(self, test):
-        x = [Signal(modbv(0,min=INT_MIN_IN,max=INT_MAX_IN)) for j in range(IN_LEN)]
-        y = [Signal(modbv(0,min=INT_MIN_OUT,max=INT_MAX_OUT)) for j in range(OUT_LEN)]
+        x = [Signal(intbv(0,min=INT_MIN_IN,max=INT_MAX_IN)) for j in range(IN_LEN)]
+        y = [Signal(intbv(0,min=INT_MIN_OUT,max=INT_MAX_OUT)) for j in range(OUT_LEN)]
         dut = complex_mult(*x,*y)
         check = test(x, y)
         sim = Simulation(dut, check)

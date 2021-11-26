@@ -35,4 +35,3 @@ def dual_port_ram(
             dout_o.next = ram_array_r[raddr_i]
 
     return  write_p,read_p
-

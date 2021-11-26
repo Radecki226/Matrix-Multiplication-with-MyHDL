@@ -3,6 +3,7 @@ import sys
 sys.path.append('C:\\Users\\piotrek\\Desktop\\nauka\\7 semestr\\esl\\tutor\\project\\myhdl_first_project\\src')
 from myhdl import *
 from dual_port_ram import dual_port_ram
+import os
 import numpy as np
 np.random.seed(2021)
 
@@ -15,8 +16,9 @@ class DualPortTest(unittest.TestCase):
 
 
         @block
-        def test(clk,we,waddr,din,re,raddr,dout,addr_w,dat_w):
+        def test1(clk,we,waddr,din,re,raddr,dout,addr_w,dat_w):
             dut = dual_port_ram(clk, we, waddr, din, re, raddr, dout, addr_w, dat_w)
+            dut.convert(hdl='vhdl')
             ram_size = 2**addr_w
             dat_max = 2**dat_w-1
             half_period = delay(10)
@@ -61,7 +63,7 @@ class DualPortTest(unittest.TestCase):
 
             return dut,clock_gen,stimulus,monitor
 
-        self.runTests(test)
+        self.runTests(test1)
 
 
     def runTests(self, test):
@@ -71,8 +73,10 @@ class DualPortTest(unittest.TestCase):
         waddr,raddr = [Signal(intbv(0)[addr_w:]) for i in range(2)]
         din,dout = [Signal(intbv(0)[dat_w:]) for i in range(2)]
         check = test(clk,we,waddr,din,re,raddr,dout,addr_w,dat_w)
-        check.config_sim(trace=True)
-        check.run_sim()
+        if (os.path.isfile("test1.vcd")):
+            os.remove("test1.vcd")
+        tb = traceSignals(check)
+        tb.run_sim()
 
 
 if __name__ == '__main__':

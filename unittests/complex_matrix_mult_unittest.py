@@ -12,7 +12,7 @@ np.random.seed(2021)
 class MatrixMultTest(unittest.TestCase):
     
 
-    def WriteAndReadTest(self):
+    def testWriteAndRead(self):
         """Test 1: Fill entire array with numbers and read it"""
 
 
@@ -26,46 +26,54 @@ class MatrixMultTest(unittest.TestCase):
             MIN_INT = -32768
             #clk
             clk = Signal(bool(0))
+            #rst
+            rst = Signal(bool(0))
+            #control
+            mm_valid = Signal(bool(0))
+            mm_ready = Signal(bool(0))
+            mm_done = Signal(bool(0))
             #Xmem
-            X_ADDR_W = np.ceil(np.log2(K*M)+1)
+            X_ADDR_W = int(np.ceil(np.log2(K*M)+1))
             x_we = Signal(bool(0))
             x_waddr = Signal(intbv(0)[X_ADDR_W:])
-            x_din = Signal(intbv(0,min=MIN_INT,max=MAX_INT)[2*COMPLEX_DAT_W])
+            x_din = Signal(intbv(0)[2*COMPLEX_DAT_W:])
             x_re = Signal(bool(0))
             x_raddr = Signal(intbv(0)[X_ADDR_W:])
-            x_dout = Signal(intbv(0,min=MIN_INT,max=MAX_INT)[2*COMPLEX_DAT_W])
+            x_dout = Signal(intbv(0)[2*COMPLEX_DAT_W:])
             Xmem = dual_port_ram(clk, x_we, x_waddr, x_din, x_re, x_raddr, x_dout, X_ADDR_W, 2*COMPLEX_DAT_W)
 
             #Ymem
-            Y_ADDR_W = np.ceil(np.log2(M*N)+1)
+            Y_ADDR_W = int(np.ceil(np.log2(M*N)+1))
             y_we = Signal(bool(0))
             y_waddr = Signal(intbv(0)[X_ADDR_W:])
-            y_din = Signal(intbv(0,min=MIN_INT,max=MAX_INT)[2*COMPLEX_DAT_W])
+            y_din = Signal(intbv(0)[2*COMPLEX_DAT_W:])
             y_re = Signal(bool(0))
             y_raddr = Signal(intbv(0)[X_ADDR_W:])
-            y_dout = Signal(intbv(0,min=MIN_INT,max=MAX_INT)[2*COMPLEX_DAT_W])
+            y_dout = Signal(intbv(0)[2*COMPLEX_DAT_W:])
             Ymem = dual_port_ram(clk, y_we, y_waddr, y_din, y_re, y_raddr, y_dout, Y_ADDR_W, 2*COMPLEX_DAT_W)
 
             #Zmem
-            Z_ADDR_W = np.ceil(np.log2(K*N)+1)
+            Z_ADDR_W = int(np.ceil(np.log2(K*N)+1))
             z_we = Signal(bool(0))
             z_waddr = Signal(intbv(0)[X_ADDR_W:])
-            z_din = Signal(intbv(0,min=MIN_INT,max=MAX_INT)[2*COMPLEX_DAT_W])
+            z_din = Signal(intbv(0)[2*COMPLEX_DAT_W:])
             z_re = Signal(bool(0))
             z_raddr = Signal(intbv(0)[X_ADDR_W:])
-            z_dout = Signal(intbv(0,min=MIN_INT,max=MAX_INT)[2*COMPLEX_DAT_W])
+            z_dout = Signal(intbv(0)[2*COMPLEX_DAT_W:])
             Zmem = dual_port_ram(clk, x_we, x_waddr, x_din, x_re, x_raddr, x_dout, X_ADDR_W, 2*COMPLEX_DAT_W)
 
             #MatrixMult
-
+            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,x_re,x_raddr,x_dout,y_re,y_raddr,y_dout,z_we,z_waddr,z_din,
+                                DAT_WIDTH = 32,K = 2,M = 100,N = 2,ACCU_WIDTH = 80)
+            
 
             half_period = delay(10)
 
             #reference array:
-            x_array = np.array([np.random.randint(MIN_INT,MAX_INT) + 1j*np.random.randint(MIN_INT,MAX_INT) for i in range(K*M)])
+            x_array = np.random.randint(MIN_INT,MAX_INT,K*M) + 1j*np.random.randint(MIN_INT,MAX_INT,K*M) 
             x_matrix = x_array.reshape(K,M)
-            y_array = np.array([np.random.randint(MIN_INT,MAX_INT) + 1j*np.random.randint(MIN_INT,MAX_INT) for i in range(M*N)])
-            y_array = y_array.reshape(M,N)
+            y_array = np.random.randint(MIN_INT,MAX_INT,M*N) + 1j*np.random.randint(MIN_INT,MAX_INT,M*N)
+            y_matrix = y_array.reshape(M,N)
 
             #clock gen
             @always(half_period)
@@ -75,20 +83,47 @@ class MatrixMultTest(unittest.TestCase):
             @instance 
             def stimulus():
                 #write
+                for i in range(200): #TODO edit
+                    yield clk.posedge
+                    #X data wirte
+                    x_real = Signal(intbv(int(np.real(x_array[i])),min=MIN_INT,max=MAX_INT)[COMPLEX_DAT_W:].unsigned())
+                    x_imag = Signal(intbv(int(np.imag(x_array[i])),min=MIN_INT,max=MAX_INT)[COMPLEX_DAT_W:].unsigned())
+                    x_in = ConcatSignal(x_real,x_imag)
+                    x_we.next = 1
+                    x_din.next = x_in
+                    x_waddr.next = Signal(intbv(i)[X_ADDR_W:])
+
+                    #Ydata write
+                    y_real = Signal(intbv(int(np.real(y_array[i])),min=MIN_INT,max=MAX_INT)[COMPLEX_DAT_W:].unsigned())
+                    y_imag = Signal(intbv(int(np.imag(y_array[i])),min=MIN_INT,max=MAX_INT)[COMPLEX_DAT_W:].unsigned())
+                    y_in = ConcatSignal(y_real,y_imag)
+                    y_we.next = 1
+                    y_din.next = y_in
+                    y_waddr.next = Signal(intbv(i)[Y_ADDR_W:])
+                
+
+                yield clk.posedge
+                mm_valid.next = 1
+                x_we.next = 0
+                y_we.next = 0
+
+                while(mm_ready == 0):
+                    yield clk.posedge
+                mm_valid.next = 0
+
+                while(mm_done == 0):
+                    yield clk.posedge
+                
+                for i in range(K*N):
+                    yield clk.posedge
+
+                #read
+                
                 for i in range(K*M):
                     yield clk.posedge
-                    x_re = Signal(intbv(np.real(x_array[i]),min=MIN_INT,max=MAX_INT)[COMPLEX_DAT_W].unsigned())
-                    x_im = Signal(intbv(np.real(x_array[i]),min=MIN_INT,max=MAX_INT)[COMPLEX_DAT_W].unsigned())
-                    x_we.next = 1
-                    x_din.next = ConcatSignal(x_re,x_im)
-                    waddr.next = Signal(intbv(i)[addr_w:])
-                    
-                #read
-                for i in range(ram_size):
-                    yield clk.posedge
-                    we.next = 0
-                    re.next = 1
-                    raddr.next = Signal(intbv(i)[addr_w:])
+                    z_re.next = 1
+                    z_raddr.next = Signal(intbv(i)[Z_ADDR_W:])
+
 
                 yield delay(100)
                 raise StopSimulation()
@@ -97,16 +132,45 @@ class MatrixMultTest(unittest.TestCase):
             @instance 
             def monitor():
                 #registers for monitoring
-                re_r = Signal(bool(0))
-                raddr_r = Signal(intbv(0)[addr_w:])
+                #re_r = Signal(bool(0))
+                #raddr_r = Signal(intbv(0)[addr_w:])
+
+                valid_cnt = 0
+                done_cnt = 0
+                is_processing = 0
                 while(1):
                     yield clk.posedge
-                    re_r.next = re
-                    raddr_r.next = raddr
-                    if (re_r == Signal(bool(1))):
-                        self.assertEqual(dout,intbv(arr[raddr_r]))
 
-            return dut,clock_gen,stimulus,monitor
+                    #check if ready comes
+                    if (mm_valid == 1):
+                        if (mm_ready == 1):
+                            valid_cnt = 0
+                        else:
+                            valid_cnt += 1
+                    if (valid_cnt == 10):
+                        self.assertEqual(mm_ready,mm_valid)
+                    
+                    #check if done comes
+                    if (mm_valid == 1 and mm_ready == 1):
+                        if (mm_done == 1):
+                            done_cnt = 0
+                        else:
+                            done_cnt += 1   
+                    if (done_cnt == 2*max(K*M,M*N)+K*N):
+                        self.assertEqual(mm_done,bool(1))
+
+
+
+
+                    
+
+                    #re_r.next = re
+                    #raddr_r.next = raddr
+                    #if (re_r == Signal(bool(1))):
+                    #    self.assertEqual(dout,intbv(arr[raddr_r])) 
+
+
+            return Xmem,Ymem,clock_gen,stimulus,monitor
 
         self.runTests(test_mm1)
 
@@ -117,6 +181,7 @@ class MatrixMultTest(unittest.TestCase):
             os.remove("test_mm1.vcd")
         tb = traceSignals(check)
         tb.run_sim()
+        print("End of sim")
 
 
 if __name__ == '__main__':

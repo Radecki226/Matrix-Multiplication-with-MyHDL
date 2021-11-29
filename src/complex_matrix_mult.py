@@ -2,7 +2,7 @@ from myhdl import *
 
 @block 
 
-def dual_port_ram(
+def complex_matrix_mult(
 
     #clk 
     clk,
@@ -10,6 +10,7 @@ def dual_port_ram(
     #control
     vld_i,
     rdy_o,
+    done_o,
     #in1
     x_re_o,
     x_raddr_o,
@@ -76,6 +77,7 @@ def dual_port_ram(
     @always_comb
     def main_fsm_comb():
         if main_fsm_st_r == main_fsm_st_t.IDLE:
+            raise NotImplementedError
 
     @always(clk.posedge)
     def calc_fsm():
@@ -95,4 +97,4 @@ def dual_port_ram(
     
 
 
-    return FSM
+    return main_fsm_reg,main_fsm_comb,calc_fsm

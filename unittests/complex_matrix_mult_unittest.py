@@ -22,7 +22,7 @@ class MatrixMultTest(unittest.TestCase):
             M = 100
             N = 2
             COMPLEX_DAT_W = 16
-            MAX_INT = 32767
+            MAX_INT = 32768
             MIN_INT = -32768
             #clk
             clk = Signal(bool(0))
@@ -64,7 +64,7 @@ class MatrixMultTest(unittest.TestCase):
 
             #MatrixMult
             dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,x_re,x_raddr,x_dout,y_re,y_raddr,y_dout,z_we,z_waddr,z_din,
-                                DAT_WIDTH = 32,K = 2,M = 100,N = 2,ACCU_WIDTH = 80)
+                                X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = 2,M = 100,N = 2,ACCU_WIDTH = 80)
             
 
             half_period = delay(10)
@@ -74,6 +74,8 @@ class MatrixMultTest(unittest.TestCase):
             x_matrix = x_array.reshape(K,M)
             y_array = np.random.randint(MIN_INT,MAX_INT,M*N) + 1j*np.random.randint(MIN_INT,MAX_INT,M*N)
             y_matrix = y_array.reshape(M,N)
+            z_matrix = x_matrix@y_matrix
+            z_array = np.squeeze(z_matrix)
 
             #clock gen
             @always(half_period)
@@ -100,12 +102,13 @@ class MatrixMultTest(unittest.TestCase):
                     y_we.next = 1
                     y_din.next = y_in
                     y_waddr.next = Signal(intbv(i)[Y_ADDR_W:])
-                
 
                 yield clk.posedge
                 mm_valid.next = 1
                 x_we.next = 0
                 y_we.next = 0
+                yield clk.posedge
+
 
                 while(mm_ready == 0):
                     yield clk.posedge
@@ -138,20 +141,24 @@ class MatrixMultTest(unittest.TestCase):
                 valid_cnt = 0
                 done_cnt = 0
                 is_processing = 0
+                x_re_r = Signal(bool(0))
+                x_raddr_r = Signal(intbv(0)[X_ADDR_W:])
+                z_re_r = Signal(bool(0))
+                z_raddr_r = Signal(intbv(0)[Z_ADDR_W:])
                 while(1):
                     yield clk.posedge
 
                     #check if ready comes
                     if (mm_valid == 1):
                         if (mm_ready == 1):
+                            is_processing = 1
                             valid_cnt = 0
                         else:
                             valid_cnt += 1
                     if (valid_cnt == 10):
                         self.assertEqual(mm_ready,mm_valid)
-                    
                     #check if done comes
-                    if (mm_valid == 1 and mm_ready == 1):
+                    if (is_processing == 1):
                         if (mm_done == 1):
                             done_cnt = 0
                         else:
@@ -159,18 +166,26 @@ class MatrixMultTest(unittest.TestCase):
                     if (done_cnt == 2*max(K*M,M*N)+K*N):
                         self.assertEqual(mm_done,bool(1))
 
+                    #check if correct data is read from x
+                    x_re_r.next = x_re
+                    x_raddr_r.next = x_raddr
+                    if (x_re_r == Signal(bool(1))):
+
+                        x_real_read_check = x_dout[2*COMPLEX_DAT_W:COMPLEX_DAT_W].signed()
+                        x_imag_read_check = x_dout[COMPLEX_DAT_W:].signed()
+                        self.assertEqual(x_real_read_check+1j*x_imag_read_check,x_array[x_raddr_r])
+
+                    #check if correct data is read from z
+                    z_re_r.next = z_re
+                    z_raddr_r.next = z_raddr
+                    if (z_re_r.next == Signal(bool(1))):
+                        z_real_read_check = z_dout[2*COMPLEX_DAT_W:COMPLEX_DAT_W]
+                        z_imag_read_check = z_dout[COMPLEX_DAT_W:]
+                        self.assertEqual(z_real_read_check+1j*z_imag_read_check,z_array[z_raddr_r])
 
 
 
-                    
-
-                    #re_r.next = re
-                    #raddr_r.next = raddr
-                    #if (re_r == Signal(bool(1))):
-                    #    self.assertEqual(dout,intbv(arr[raddr_r])) 
-
-
-            return Xmem,Ymem,clock_gen,stimulus,monitor
+            return Xmem,Ymem,dut,clock_gen,stimulus,monitor
 
         self.runTests(test_mm1)
 

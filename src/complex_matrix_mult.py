@@ -1,6 +1,11 @@
 from myhdl import *
-@block 
+def complex_mult_signed(dat1_real_i,dat1_imag_i,dat2_real_i,dat2_imag_i):
+    dat_real_o = dat1_real_i.signed()*dat2_real_i.signed() - dat1_imag_i.signed()*dat2_imag_i.signed()
+    dat_imag_o = dat1_real_i.signed()*dat2_imag_i.signed() + dat1_imag_i.signed()*dat2_real_i.signed()
+    return dat_real_o,dat_imag_o
 
+
+@block 
 def complex_matrix_mult(
 
     #clk 
@@ -10,12 +15,12 @@ def complex_matrix_mult(
     vld_i,
     rdy_o,
     done_o,
+    #re
+    re_o,
     #in1
-    x_re_o,
     x_raddr_o,
     x_dat_i,
     #in2
-    y_re_o,
     y_raddr_o,
     y_dat_i,
     
@@ -35,9 +40,12 @@ def complex_matrix_mult(
     ACCU_WIDTH = 80
 ):
 
+    COMPLEX_DAT_WIDTH = int(DAT_WIDTH/2)
+    COMPLEX_ACCU_WIDTH = int(ACCU_WIDTH/2)
 
     #arrray of accumulators:
-    accu_array_r = [Signal(intbv(0)[ACCU_WIDTH:]) for i in range(K*N)]
+    accu_array_real_r = [Signal(intbv(0)[COMPLEX_ACCU_WIDTH:].signed()) for i in range(K*N)]
+    accu_array_imag_r = [Signal(intbv(0)[COMPLEX_ACCU_WIDTH:].signed()) for i in range(K*N)]
     x_column_array_r = [Signal(intbv(0)[DAT_WIDTH:]) for i in range(K)]
     y_row_array_r = [Signal(intbv(0)[DAT_WIDTH:]) for i in range(N)]
 
@@ -52,31 +60,33 @@ def complex_matrix_mult(
     n_cnt = Signal(intbv(0,min=0,max=N))
 
     k_cnt_r = Signal(intbv(0,min=0,max=K))
-    m_cn_rt = Signal(intbv(0,min=0,max=M))
+    m_cnt_r = Signal(intbv(0,min=0,max=M))
     n_cnt_r = Signal(intbv(0,min=0,max=N))
 
 
     k_cnt_full = Signal(bool(0))
     n_cnt_full = Signal(bool(0))
+    m_cnt_full = Signal(bool(0))
 
-    x_re_r = Signal(bool(0))
+    re_r = Signal(bool(0))
     x_raddr_r = Signal(intbv(0)[X_ADDR_W:])
-
-    y_re_r = Signal(bool(0))
     y_raddr_r = Signal(intbv(0)[Y_ADDR_W:])
 
-    addr = Signal(bool(0))
-    addr_r = Signal(bool(0))
+    z_write_cnt = Signal(intbv(0,min=0,max=K*N))
+    z_write_cnt_full = Signal(bool(0))
 
     #communication between main and calc
     do_calc = Signal(bool(0))
     calc_finished = Signal(bool(0))
 
+    #latency
+    mult_r = Signal(bool(0))
+
 
     @always(clk.posedge)
     def main_fsm_reg():
         if rst == 1:
-            raise NotImplementedError
+            main_fsm_st_r.next = main_fsm_st_t.IDLE
         else:
             if main_fsm_st_r == main_fsm_st_t.IDLE:
                 if(rdy_o == 1 and vld_i == 1):
@@ -84,11 +94,16 @@ def complex_matrix_mult(
 
             elif main_fsm_st_r == main_fsm_st_t.CALC:
                 if (calc_finished == 1):
-                    main_fsm_st_r.next = main_fsm_st_t.WRITE
+                    main_fsm_st_r.next = main_fsm_st_t.WRITE_DATA
+                    z_we_o.next = 1
+
             elif main_fsm_st_r == main_fsm_st_t.WRITE_DATA:
-                raise NotImplementedError
+                if (z_write_cnt_full == 1):
+                    main_fsm_st_r.next = main_fsm_st_t.DONE
+                    z_we_o.next = 0
+
             elif main_fsm_st_r == main_fsm_st_t.DONE:
-                raise NotImplementedError
+                main_fsm_st_r.next = main_fsm_st_t.IDLE
             else: 
                 raise ValueError("undefined state")
 
@@ -101,30 +116,56 @@ def complex_matrix_mult(
 
         if main_fsm_st_r == main_fsm_st_t.CALC:
             do_calc.next = 1
+        else: 
+            do_calc.next = 0
+
+        if main_fsm_st_r == main_fsm_st_t.DONE:
+            done_o.next = 1
+        else:
+            done_o.next = 0
+
+        if z_write_cnt == K*N - 1:
+            z_write_cnt_full.next = 1
+        else:
+            z_write_cnt_full.next = 0
+
+    @always(clk.posedge)
+    def z_write_counter_p():
+        if (rst == 1 or main_fsm_st_r == main_fsm_st_t.DONE):
+            z_write_cnt.next = 0
+        else:
+            if (main_fsm_st_r == main_fsm_st_t.WRITE_DATA):
+                if (z_write_cnt != K*N-1):
+                    z_write_cnt.next = z_write_cnt + 1
+        
         
 
     @always(clk.posedge)
     def calc_fsm():
         if rst == 1:
-            raise NotImplementedError
+            calc_fsm_st_r.next = calc_fsm_st_t.IDLE
         else:
             if calc_fsm_st_r == calc_fsm_st_t.IDLE:
                 if (do_calc == 1):
                     calc_fsm_st_r.next = calc_fsm_st_t.READ
-                    x_re_o.next = 1
-                    x_re_o.next = 1
 
             elif calc_fsm_st_r == calc_fsm_st_t.READ:
                 if (k_cnt_full == 1 and n_cnt_full == 1):
-                    for i in range(K*N):
-                        accu_array_r[i].next = accu_array_r[i] + x_column_array_r[]
                     calc_fsm_st_r.next = calc_fsm_st_t.MULT
+
             elif calc_fsm_st_r == calc_fsm_st_t.MULT:
-                raise NotImplementedError
+                if (m_cnt_full == 1):
+                    calc_fsm_st_r.next = calc_fsm_st_t.DONE
+                else:
+                    calc_fsm_st_r.next = calc_fsm_st_t.READ
+
             elif calc_fsm_st_r == calc_fsm_st_t.DONE:
-                raise NotImplementedError
+                calc_fsm_st_r.next = calc_fsm_st_t.IDLE
+
+                
             else: 
                 raise ValueError("undefined state")
+
     @always_comb
     def calc_fsm_comb():
         if (k_cnt == K-1):
@@ -136,6 +177,23 @@ def complex_matrix_mult(
             n_cnt_full.next = 1
         else:
             n_cnt_full.next = 0
+        
+        if (m_cnt == M-1):
+            m_cnt_full.next = 1
+        else:
+            m_cnt_full.next = 0
+
+        if (calc_fsm_st_r == calc_fsm_st_t.DONE):
+            calc_finished.next = 1
+        else:
+            calc_finished.next = 0
+        
+        if (calc_fsm_st_r == calc_fsm_st_t.READ):
+            re_o.next = 1
+        else:
+            re_o.next = 0
+
+    
     
     @always(clk.posedge)
     def k_counter_p():
@@ -154,27 +212,58 @@ def complex_matrix_mult(
             if (calc_fsm_st_r == calc_fsm_st_t.READ):
                 if (n_cnt != N-1):
                     n_cnt.next = n_cnt + 1
+    @always(clk.posedge)
+    def m_counter_p():
+        if (rst == 1 or calc_fsm_st_r == calc_fsm_st_t.IDLE):
+            m_cnt.next = 0
+        else:
+            if (calc_fsm_st_r == calc_fsm_st_t.MULT and n_cnt_full == 1 and k_cnt_full == 1):
+                if (m_cnt != M-1):
+                    m_cnt.next = m_cnt + 1
 
     @always_comb
     def addr_gen_p():
-        x_raddr_o.next = m_cnt*K + k_cnt
-        y_raddr_o.next = n_cnt*M + m_cnt
+        x_raddr_o.next = k_cnt*M + m_cnt
+        y_raddr_o.next = m_cnt*N + n_cnt
+        z_waddr_o.next = z_write_cnt
+        z_dat_o.next = ConcatSignal(accu_array_real_r[z_write_cnt],accu_array_imag_r[z_write_cnt])
 
     @always(clk.posedge)
     def latency_handling_p():
-        x_re_r.next = x_re_o
+        re_r.next = re_o
         x_raddr_r.next = x_raddr_o
-        y_re_r.next = y_re_o
         y_raddr_r.next = y_raddr_o
         k_cnt_r.next = k_cnt
         n_cnt_r.next = n_cnt
 
-        if (x_re_r == 1):
-            x_column_array_r[k_cnt_r] = x_dat_i
-            y_row_array_r[n_cnt_r] = y_dat_i
+        if (re_r == 1):
+            x_column_array_r[k_cnt_r].next = x_dat_i
+            y_row_array_r[n_cnt_r].next = y_dat_i
+
+        if calc_fsm_st_r == calc_fsm_st_t.MULT:
+            mult_r.next = 1
+        else:
+            mult_r.next = 0
+
+        #multiplication
+        #If mult_r do multiplication, if main fsm returned to idle- clear
+        for k in range(K):
+            for n in range(N):
+                if (mult_r == 1):
+                    x_real = x_column_array_r[k][2*COMPLEX_DAT_WIDTH:COMPLEX_DAT_WIDTH].signed()
+                    x_imag = x_column_array_r[k][COMPLEX_DAT_WIDTH:].signed()
+                    y_real = y_row_array_r[n][2*COMPLEX_DAT_WIDTH:COMPLEX_DAT_WIDTH].signed()
+                    y_imag = y_row_array_r[n][COMPLEX_DAT_WIDTH:].signed()
+                    out_real,out_imag = complex_mult_signed(x_real,x_imag,y_real,y_imag)
+                    accu_array_real_r[k*N+n].next = accu_array_real_r[k*N+n].signed() + out_real
+                    accu_array_imag_r[k*N+n].next = accu_array_imag_r[k*N+n].signed() + out_imag
+                elif(main_fsm_st_r == main_fsm_st_t.IDLE):
+                    accu_array_real_r[k*N+n].next = 0
+                    accu_array_imag_r[k*N+n].next = 0
+            
 
 
 
 
 
-    return main_fsm_reg,main_fsm_comb,calc_fsm,calc_fsm_comb,k_counter_p,n_counter_p,addr_gen_p,latency_handling_p
+    return main_fsm_reg,main_fsm_comb,z_write_counter_p,calc_fsm,calc_fsm_comb,k_counter_p,n_counter_p,m_counter_p,addr_gen_p,latency_handling_p

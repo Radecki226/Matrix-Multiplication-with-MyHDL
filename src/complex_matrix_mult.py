@@ -60,7 +60,6 @@ def complex_matrix_mult(
     n_cnt = Signal(intbv(0,min=0,max=N))
 
     k_cnt_r = Signal(intbv(0,min=0,max=K))
-    m_cnt_r = Signal(intbv(0,min=0,max=M))
     n_cnt_r = Signal(intbv(0,min=0,max=N))
 
 
@@ -84,7 +83,7 @@ def complex_matrix_mult(
 
 
     @always(clk.posedge)
-    def main_fsm_reg():
+    def main_fsm_reg_p():
         if rst == 1:
             main_fsm_st_r.next = main_fsm_st_t.IDLE
         else:
@@ -108,7 +107,7 @@ def complex_matrix_mult(
                 raise ValueError("undefined state")
 
     @always_comb
-    def main_fsm_comb():
+    def main_fsm_comb_p():
         if main_fsm_st_r == main_fsm_st_t.IDLE:
             rdy_o.next = 1
         else:
@@ -141,7 +140,7 @@ def complex_matrix_mult(
         
 
     @always(clk.posedge)
-    def calc_fsm():
+    def calc_fsm_reg_p():
         if rst == 1:
             calc_fsm_st_r.next = calc_fsm_st_t.IDLE
         else:
@@ -167,7 +166,7 @@ def complex_matrix_mult(
                 raise ValueError("undefined state")
 
     @always_comb
-    def calc_fsm_comb():
+    def calc_fsm_comb_p():
         if (k_cnt == K-1):
             k_cnt_full.next = 1
         else:
@@ -245,8 +244,10 @@ def complex_matrix_mult(
         else:
             mult_r.next = 0
 
-        #multiplication
-        #If mult_r do multiplication, if main fsm returned to idle- clear
+    #multiplication
+    #If mult_r do multiplication, if main fsm returned to idle- clear
+    @always(clk.posedge)
+    def multiplication_p():
         for k in range(K):
             for n in range(N):
                 if (mult_r == 1):
@@ -266,4 +267,4 @@ def complex_matrix_mult(
 
 
 
-    return main_fsm_reg,main_fsm_comb,z_write_counter_p,calc_fsm,calc_fsm_comb,k_counter_p,n_counter_p,m_counter_p,addr_gen_p,latency_handling_p
+    return main_fsm_reg_p,main_fsm_comb_p,z_write_counter_p,calc_fsm_reg_p,calc_fsm_comb_p,k_counter_p,n_counter_p,m_counter_p,addr_gen_p,latency_handling_p,multiplication_p

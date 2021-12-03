@@ -1,8 +1,15 @@
 import unittest
 import sys
+from pathlib import Path
+import os
 
 from myhdl import Error
-sys.path.append('C:\\Users\\piotrek\\Desktop\\nauka\\7 semestr\\esl\\tutor\\project\\myhdl_first_project\\src')
+
+project_path = Path(os.path.abspath(__file__)).parent.absolute().parent.absolute()
+src_path = str(project_path)+"\\src"
+print(src_path)
+sys.path.append(src_path)
+
 from myhdl import *
 from complex_matrix_mult import complex_matrix_mult
 from dual_port_ram import dual_port_ram
@@ -38,7 +45,8 @@ class MatrixMultTest(unittest.TestCase):
             #control
             mm_valid = Signal(bool(0))
             mm_ready = Signal(bool(0))
-            mm_done = Signal(bool(0))
+            mm_done = Signal(bool(0)) #output valid
+            mm_done_ack = Signal(bool(0)) #output rdy
             #Xmem
             X_ADDR_W = int(np.ceil(np.log2(K*M)))
             x_we = Signal(bool(0))
@@ -69,8 +77,9 @@ class MatrixMultTest(unittest.TestCase):
             Zmem = dual_port_ram(clk, z_we, z_waddr, z_din, z_re, z_raddr, z_dout, Z_ADDR_W, ACCU_WIDTH)
 
             #MatrixMult
-            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
+            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
                                 X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
+            #dut.convert(hdl = 'vhdl')
             
 
             half_period = delay(5)
@@ -122,9 +131,11 @@ class MatrixMultTest(unittest.TestCase):
                 while(mm_ready == 0):
                     yield clk.posedge
                 mm_valid.next = 0
+                mm_done_ack.next = 1
 
                 while(mm_done == 0):
                     yield clk.posedge
+                mm_done_ack.next = 1
                 
                 for i in range(K*N):
                     yield clk.posedge
@@ -223,6 +234,7 @@ class MatrixMultTest(unittest.TestCase):
             mm_valid = Signal(bool(0))
             mm_ready = Signal(bool(0))
             mm_done = Signal(bool(0))
+            mm_done_ack = Signal(bool(0))
             #Xmem
             X_ADDR_W = int(np.ceil(np.log2(K*M)))
             x_we = Signal(bool(0))
@@ -253,7 +265,7 @@ class MatrixMultTest(unittest.TestCase):
             Zmem = dual_port_ram(clk, z_we, z_waddr, z_din, z_re, z_raddr, z_dout, Z_ADDR_W, ACCU_WIDTH)
 
             #MatrixMult
-            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
+            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
                                 X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             
 
@@ -308,10 +320,13 @@ class MatrixMultTest(unittest.TestCase):
                     while(mm_ready == 0):
                         yield clk.posedge
                     mm_valid.next = 0
+                    mm_done_ack.next = 1
 
                     while(mm_done == 0):
                         yield clk.posedge
-                    
+
+                    mm_done_ack.next = 0
+
                     for i in range(K*N):
                         yield clk.posedge
 
@@ -410,6 +425,7 @@ class MatrixMultTest(unittest.TestCase):
             mm_valid = Signal(bool(0))
             mm_ready = Signal(bool(0))
             mm_done = Signal(bool(0))
+            mm_done_ack = Signal(bool(0))
             #Xmem
             X_ADDR_W = int(np.ceil(np.log2(K*M)))
             x_we = Signal(bool(0))
@@ -440,7 +456,7 @@ class MatrixMultTest(unittest.TestCase):
             Zmem = dual_port_ram(clk, z_we, z_waddr, z_din, z_re, z_raddr, z_dout, Z_ADDR_W, ACCU_WIDTH)
 
             #MatrixMult
-            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
+            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
                                 X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             
 
@@ -495,6 +511,7 @@ class MatrixMultTest(unittest.TestCase):
                     while(mm_ready == 0):
                         yield clk.posedge
                     mm_valid.next = 0
+                    mm_done_ack.next = 1
 
                     processing_counter = 0 
                     while(mm_done == 0 and rst == 0):
@@ -504,6 +521,7 @@ class MatrixMultTest(unittest.TestCase):
                             rst.next = 1
                         else:
                             rst.next = 0
+                    mm_done_ack.next = 0
                     
                     for i in range(K*N):
                         yield clk.posedge
@@ -602,6 +620,7 @@ class MatrixMultTest(unittest.TestCase):
             mm_valid = Signal(bool(0))
             mm_ready = Signal(bool(0))
             mm_done = Signal(bool(0))
+            mm_done_ack = Signal(bool(0))
             #Xmem
             X_ADDR_W = int(np.ceil(np.log2(K*M)))
             x_we = Signal(bool(0))
@@ -632,7 +651,7 @@ class MatrixMultTest(unittest.TestCase):
             Zmem = dual_port_ram(clk, z_we, z_waddr, z_din, z_re, z_raddr, z_dout, Z_ADDR_W, ACCU_WIDTH)
 
             #MatrixMult
-            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
+            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
                                 X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             
 
@@ -685,9 +704,11 @@ class MatrixMultTest(unittest.TestCase):
                 while(mm_ready == 0):
                     yield clk.posedge
                 mm_valid.next = 0
-
+                mm_done_ack.next = 1
                 while(mm_done == 0):
                     yield clk.posedge
+                mm_done_ack.next = 0
+
                 
                 for i in range(K*N):
                     yield clk.posedge
@@ -783,6 +804,7 @@ class MatrixMultTest(unittest.TestCase):
             mm_valid = Signal(bool(0))
             mm_ready = Signal(bool(0))
             mm_done = Signal(bool(0))
+            mm_done_ack = Signal(bool(0))
             #Xmem
             X_ADDR_W = int(np.ceil(np.log2(K*M)))
             x_we = Signal(bool(0))
@@ -813,7 +835,7 @@ class MatrixMultTest(unittest.TestCase):
             Zmem = dual_port_ram(clk, z_we, z_waddr, z_din, z_re, z_raddr, z_dout, Z_ADDR_W, ACCU_WIDTH)
 
             #MatrixMult
-            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
+            dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
                                 X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             
 
@@ -866,9 +888,10 @@ class MatrixMultTest(unittest.TestCase):
                 while(mm_ready == 0):
                     yield clk.posedge
                 mm_valid.next = 0
-
+                mm_done_ack.next = 1
                 while(mm_done == 0):
                     yield clk.posedge
+                mm_done_ack.next = 0
                 
                 for i in range(K*N):
                     yield clk.posedge
@@ -951,7 +974,6 @@ class MatrixMultTest(unittest.TestCase):
 
 if __name__ == '__main__':
     for i in range(1,6):
-        print("test_mm"+str(i)+".vcd")
         if (os.path.isfile("test_mm"+str(i)+".vcd")):
             os.remove("test_mm"+str(i)+".vcd")
     unittest.main(verbosity=2)

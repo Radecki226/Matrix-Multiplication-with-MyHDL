@@ -1,8 +1,10 @@
 from myhdl import *
-def complex_mult_signed(dat1_real_i,dat1_imag_i,dat2_real_i,dat2_imag_i):
+def complex_mult_signed_real(dat1_real_i,dat1_imag_i,dat2_real_i,dat2_imag_i):
     dat_real_o = dat1_real_i.signed()*dat2_real_i.signed() - dat1_imag_i.signed()*dat2_imag_i.signed()
+    return dat_real_o
+def complex_mult_signed_imag(dat1_real_i,dat1_imag_i,dat2_real_i,dat2_imag_i):
     dat_imag_o = dat1_real_i.signed()*dat2_imag_i.signed() + dat1_imag_i.signed()*dat2_real_i.signed()
-    return dat_real_o,dat_imag_o
+    return dat_imag_o
 
 
 @block 
@@ -12,9 +14,10 @@ def complex_matrix_mult(
     clk,
     rst,
     #control
-    vld_i,
-    rdy_o,
-    done_o,
+    input_vld_i,
+    input_rdy_o,
+    output_vld_o,
+    output_rdy_i,
     #re
     re_o,
     #in1
@@ -88,7 +91,7 @@ def complex_matrix_mult(
             main_fsm_st_r.next = main_fsm_st_t.IDLE
         else:
             if main_fsm_st_r == main_fsm_st_t.IDLE:
-                if(rdy_o == 1 and vld_i == 1):
+                if(input_rdy_o == 1 and input_vld_i == 1):
                     main_fsm_st_r.next = main_fsm_st_t.CALC
 
             elif main_fsm_st_r == main_fsm_st_t.CALC:
@@ -102,16 +105,17 @@ def complex_matrix_mult(
                     z_we_o.next = 0
 
             elif main_fsm_st_r == main_fsm_st_t.DONE:
-                main_fsm_st_r.next = main_fsm_st_t.IDLE
+                if (output_rdy_i  == 1):
+                    main_fsm_st_r.next = main_fsm_st_t.IDLE
             else: 
                 raise ValueError("undefined state")
 
     @always_comb
     def main_fsm_comb_p():
         if main_fsm_st_r == main_fsm_st_t.IDLE:
-            rdy_o.next = 1
+            input_rdy_o.next = 1
         else:
-            rdy_o.next = 0
+            input_rdy_o.next = 0
 
         if main_fsm_st_r == main_fsm_st_t.CALC:
             do_calc.next = 1
@@ -119,9 +123,9 @@ def complex_matrix_mult(
             do_calc.next = 0
 
         if main_fsm_st_r == main_fsm_st_t.DONE:
-            done_o.next = 1
+            output_vld_o.next = 1
         else:
-            done_o.next = 0
+            output_vld_o.next = 0
 
         if z_write_cnt == K*N - 1:
             z_write_cnt_full.next = 1
@@ -255,7 +259,8 @@ def complex_matrix_mult(
                     x_imag = x_column_array_r[k][COMPLEX_DAT_WIDTH:].signed()
                     y_real = y_row_array_r[n][2*COMPLEX_DAT_WIDTH:COMPLEX_DAT_WIDTH].signed()
                     y_imag = y_row_array_r[n][COMPLEX_DAT_WIDTH:].signed()
-                    out_real,out_imag = complex_mult_signed(x_real,x_imag,y_real,y_imag)
+                    out_real = complex_mult_signed_real(x_real,x_imag,y_real,y_imag)
+                    out_imag = complex_mult_signed_imag(x_real,x_imag,y_real,y_imag)
                     accu_array_real_r[k*N+n].next = accu_array_real_r[k*N+n].signed() + out_real
                     accu_array_imag_r[k*N+n].next = accu_array_imag_r[k*N+n].signed() + out_imag
                 elif(main_fsm_st_r == main_fsm_st_t.IDLE):

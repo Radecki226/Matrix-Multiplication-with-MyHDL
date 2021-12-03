@@ -1,6 +1,12 @@
 import unittest
 import sys
-sys.path.append('C:\\Users\\piotrek\\Desktop\\nauka\\7 semestr\\esl\\tutor\\project\\myhdl_first_project\\src')
+from pathlib import Path
+import os
+
+project_path = Path(os.path.abspath(__file__)).parent.absolute().parent.absolute()
+src_path = str(project_path)+"\\src"
+print(src_path)
+sys.path.append(src_path)
 from myhdl import *
 from dual_port_ram import dual_port_ram
 import os

@@ -1,1 +1,2 @@
-# myhdl_first_project
+# Matrix multiplication with MyHDL
+Academic project 

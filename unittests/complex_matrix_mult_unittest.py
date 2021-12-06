@@ -78,7 +78,7 @@ class MatrixMultTest(unittest.TestCase):
 
             #MatrixMult
             dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
-                                X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
+                                DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             #dut.convert(hdl = 'vhdl')
             
 
@@ -266,7 +266,7 @@ class MatrixMultTest(unittest.TestCase):
 
             #MatrixMult
             dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
-                                X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
+                                DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             
 
             half_period = delay(5)
@@ -457,7 +457,7 @@ class MatrixMultTest(unittest.TestCase):
 
             #MatrixMult
             dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
-                                X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
+                                DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             
 
             half_period = delay(5)
@@ -652,7 +652,7 @@ class MatrixMultTest(unittest.TestCase):
 
             #MatrixMult
             dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
-                                X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
+                                DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             
 
             half_period = delay(5)
@@ -836,7 +836,7 @@ class MatrixMultTest(unittest.TestCase):
 
             #MatrixMult
             dut = complex_matrix_mult(clk,rst,mm_valid,mm_ready,mm_done,mm_done_ack,xy_re,x_raddr,x_dout,y_raddr,y_dout,z_we,z_waddr,z_din,
-                                X_ADDR_W,Y_ADDR_W,Z_ADDR_W,DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
+                                DAT_WIDTH = 32,K = K,M = M,N = N,ACCU_WIDTH = ACCU_WIDTH)
             
 
             half_period = delay(5)

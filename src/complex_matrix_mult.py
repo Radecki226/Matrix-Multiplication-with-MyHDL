@@ -33,9 +33,6 @@ def complex_matrix_mult(
     z_dat_o,
 
     #generics
-    X_ADDR_W,
-    Y_ADDR_W,
-    Z_ADDR_W,
     DAT_WIDTH = 32,
     K = 2,
     M = 2,
@@ -71,8 +68,8 @@ def complex_matrix_mult(
     m_cnt_full = Signal(bool(0))
 
     re_r = Signal(bool(0))
-    x_raddr_r = Signal(intbv(0)[X_ADDR_W:])
-    y_raddr_r = Signal(intbv(0)[Y_ADDR_W:])
+    x_raddr_r = Signal(intbv(0,min=0,max=K*M))
+    y_raddr_r = Signal(intbv(0,min=0,max=M*N))
 
     z_write_cnt = Signal(intbv(0,min=0,max=K*N))
     z_write_cnt_full = Signal(bool(0))
@@ -97,12 +94,10 @@ def complex_matrix_mult(
             elif main_fsm_st_r == main_fsm_st_t.CALC:
                 if (calc_finished == 1):
                     main_fsm_st_r.next = main_fsm_st_t.WRITE_DATA
-                    z_we_o.next = 1
 
             elif main_fsm_st_r == main_fsm_st_t.WRITE_DATA:
                 if (z_write_cnt_full == 1):
                     main_fsm_st_r.next = main_fsm_st_t.DONE
-                    z_we_o.next = 0
 
             elif main_fsm_st_r == main_fsm_st_t.DONE:
                 if (output_rdy_i  == 1):
@@ -126,6 +121,11 @@ def complex_matrix_mult(
             output_vld_o.next = 1
         else:
             output_vld_o.next = 0
+        
+        if main_fsm_st_r == main_fsm_st_t.WRITE_DATA:
+            z_we_o.next = 1
+        else:
+            z_we_o.next = 0
 
         if z_write_cnt == K*N - 1:
             z_write_cnt_full.next = 1

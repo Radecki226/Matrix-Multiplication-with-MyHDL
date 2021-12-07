@@ -1,4 +1,5 @@
-from myhdl import *
+from myhdl import Signal,block,intbv,enum,always,always_comb,instances,ConcatSignal,ResetSignal,always_seq
+
 def complex_mult_signed_real(dat1_real_i,dat1_imag_i,dat2_real_i,dat2_imag_i):
     dat_real_o = dat1_real_i.signed()*dat2_real_i.signed() - dat1_imag_i.signed()*dat2_imag_i.signed()
     return dat_real_o
@@ -82,7 +83,7 @@ def complex_matrix_mult(
     mult_r = Signal(bool(0))
 
 
-    @always(clk.posedge)
+    @always_seq(clk.posedge,reset=rst)
     def main_fsm_reg_p():
         if rst == 1:
             main_fsm_st_r.next = main_fsm_st_t.IDLE
@@ -132,7 +133,7 @@ def complex_matrix_mult(
         else:
             z_write_cnt_full.next = 0
 
-    @always(clk.posedge)
+    @always_seq(clk.posedge,reset=rst)
     def z_write_counter_p():
         if (rst == 1 or main_fsm_st_r == main_fsm_st_t.DONE):
             z_write_cnt.next = 0
@@ -143,7 +144,7 @@ def complex_matrix_mult(
         
         
 
-    @always(clk.posedge)
+    @always_seq(clk.posedge,reset=rst)
     def calc_fsm_reg_p():
         if rst == 1:
             calc_fsm_st_r.next = calc_fsm_st_t.IDLE
@@ -198,7 +199,7 @@ def complex_matrix_mult(
 
     
     
-    @always(clk.posedge)
+    @always_seq(clk.posedge,reset=rst)
     def k_counter_p():
         if (rst == 1 or calc_fsm_st_r == calc_fsm_st_t.MULT):
             k_cnt.next = 0
@@ -207,7 +208,7 @@ def complex_matrix_mult(
                 if (k_cnt != K-1):
                     k_cnt.next = k_cnt + 1
 
-    @always(clk.posedge)
+    @always_seq(clk.posedge,reset=rst)
     def n_counter_p():
         if (rst == 1 or calc_fsm_st_r == calc_fsm_st_t.MULT):
             n_cnt.next = 0
@@ -215,7 +216,7 @@ def complex_matrix_mult(
             if (calc_fsm_st_r == calc_fsm_st_t.READ):
                 if (n_cnt != N-1):
                     n_cnt.next = n_cnt + 1
-    @always(clk.posedge)
+    @always_seq(clk.posedge,reset=rst)
     def m_counter_p():
         if (rst == 1 or calc_fsm_st_r == calc_fsm_st_t.IDLE):
             m_cnt.next = 0
@@ -231,7 +232,7 @@ def complex_matrix_mult(
         z_waddr_o.next = z_write_cnt
         z_dat_o.next = ConcatSignal(accu_array_real_r[z_write_cnt],accu_array_imag_r[z_write_cnt])
 
-    @always(clk.posedge)
+    @always_seq(clk.posedge,reset=rst)
     def latency_handling_p():
         re_r.next = re_o
         x_raddr_r.next = x_raddr_o
@@ -272,4 +273,4 @@ def complex_matrix_mult(
 
 
 
-    return main_fsm_reg_p,main_fsm_comb_p,z_write_counter_p,calc_fsm_reg_p,calc_fsm_comb_p,k_counter_p,n_counter_p,m_counter_p,addr_gen_p,latency_handling_p,multiplication_p
+    return instances()

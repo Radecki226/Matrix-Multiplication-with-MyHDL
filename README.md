@@ -15,15 +15,15 @@ It is assumed that we multiply matrices KxM- X and MxN- Y. Algorithm is as follo
   <li>Set ready</li>
 </ol>
 
-Time of execution will be [(max(K,N)+1)*M + K*N ] ticks + a few ticks for control\
+Time of execution will be [(max(K,N)+1)*M + K*N ] ticks + a few ticks for control
 
-![Very simple drawing][drawing.jpg]
+![Very simple drawing](drawing.jpg)
 
 ## 3. Matrix Multiplier
 
 ### Interface list
 
-![interface list][interfacea.jpg]
+![interface list](interfaces.jpg)
 
 ### Functional description
 

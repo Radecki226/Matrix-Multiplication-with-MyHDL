@@ -69,8 +69,6 @@ def complex_matrix_mult(
     m_cnt_full = Signal(bool(0))
 
     re_r = Signal(bool(0))
-    x_raddr_r = Signal(intbv(0,min=0,max=K*M))
-    y_raddr_r = Signal(intbv(0,min=0,max=M*N))
 
     z_write_cnt = Signal(intbv(0,min=0,max=K*N))
     z_write_cnt_full = Signal(bool(0))
@@ -82,6 +80,11 @@ def complex_matrix_mult(
     #latency
     mult_r = Signal(bool(0))
 
+    #internal signals 
+    input_rdy_s = Signal(bool(0))
+    re_s = Signal(bool(0))
+
+
 
     @always_seq(clk.posedge,reset=rst)
     def main_fsm_reg_p():
@@ -89,7 +92,7 @@ def complex_matrix_mult(
             main_fsm_st_r.next = main_fsm_st_t.IDLE
         else:
             if main_fsm_st_r == main_fsm_st_t.IDLE:
-                if(input_rdy_o == 1 and input_vld_i == 1):
+                if(input_rdy_s == 1 and input_vld_i == 1):
                     main_fsm_st_r.next = main_fsm_st_t.CALC
 
             elif main_fsm_st_r == main_fsm_st_t.CALC:
@@ -109,9 +112,9 @@ def complex_matrix_mult(
     @always_comb
     def main_fsm_comb_p():
         if main_fsm_st_r == main_fsm_st_t.IDLE:
-            input_rdy_o.next = 1
+            input_rdy_s.next = 1
         else:
-            input_rdy_o.next = 0
+            input_rdy_s.next = 0
 
         if main_fsm_st_r == main_fsm_st_t.CALC:
             do_calc.next = 1
@@ -193,9 +196,9 @@ def complex_matrix_mult(
             calc_finished.next = 0
         
         if (calc_fsm_st_r == calc_fsm_st_t.READ):
-            re_o.next = 1
+            re_s.next = 1
         else:
-            re_o.next = 0
+            re_s.next = 0
 
     
     
@@ -234,9 +237,7 @@ def complex_matrix_mult(
 
     @always_seq(clk.posedge,reset=rst)
     def latency_handling_p():
-        re_r.next = re_o
-        x_raddr_r.next = x_raddr_o
-        y_raddr_r.next = y_raddr_o
+        re_r.next = re_s
         k_cnt_r.next = k_cnt
         n_cnt_r.next = n_cnt
 
@@ -248,6 +249,13 @@ def complex_matrix_mult(
             mult_r.next = 1
         else:
             mult_r.next = 0
+
+
+    #drive outputs
+    @always_comb
+    def outputs_p():
+        input_rdy_o.next = input_rdy_s
+        re_o.next = re_s
 
     #multiplication
     #If mult_r do multiplication, if main fsm returned to idle- clear

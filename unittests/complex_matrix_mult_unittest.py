@@ -29,7 +29,7 @@ class MatrixMultTest(unittest.TestCase):
         #clk
         clk = Signal(bool(0))
         #rst
-        rst = ResetSignal(0,active=1,isasync=True)
+        rst = ResetSignal(0,active=1,isasync=False)
         #control
         mm_valid = Signal(bool(0))
         mm_ready = Signal(bool(0))
